@@ -1,0 +1,35 @@
+body {
+    font-family: system-ui, sans-serif;
+    background: #1f2333;
+    color: #f8f8f8;
+    display: flex;
+    justify-content: center;
+    padding-top: 40px;
+  }
+  
+  .battle-wrapper {
+    background: #2d3248;
+    border-radius: 8px;
+    padding: 24px;
+    width: 360px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.45);
+  }
+  
+  .hp-bar {
+    height: 8px;
+    background: #444;
+    margin: 4px 0 12px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .hp-fill {
+    height: 100%;
+    background: #3ad87b;
+  }
+  
+  .sprite {
+    image-rendering: pixelated;
+    width: 64px;
+    height: 64px;
+  }
+  
