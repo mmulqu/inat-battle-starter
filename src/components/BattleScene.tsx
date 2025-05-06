@@ -1,7 +1,7 @@
 // src/components/BattleScene.tsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { moves, MoveId } from '../data/moves';
-import { takeTurn, Combatant } from '../battle/engine';
+import { takeTurn, Combatant, TurnResult } from '../battle/engine';
 import { SpeciesId } from '../data/species';
 
 import { CombatantDisplay } from './battle/CombatantDisplay';
@@ -38,6 +38,13 @@ export function BattleScene({
 
     const activePlayer = useMemo(() => playerTeam[activePlayerIndex], [playerTeam, activePlayerIndex]);
     const activeEnemy = useMemo(() => enemyTeam[activeEnemyIndex], [enemyTeam, activeEnemyIndex]);
+
+    useEffect(() => {
+        console.log("[DEBUG BattleScene INITIAL MOUNT] playerTeam:", playerTeam);
+        console.log("[DEBUG BattleScene INITIAL MOUNT] enemyTeam:", enemyTeam);
+        playerTeam.forEach((p, i) => console.log(`[DEBUG BattleScene INITIAL MOUNT] playerTeam[${i}].statusConditions:`, p.statusConditions));
+        enemyTeam.forEach((e, i) => console.log(`[DEBUG BattleScene INITIAL MOUNT] enemyTeam[${i}].statusConditions:`, e.statusConditions));
+    }, []); // Empty dependency array makes this run once on mount
 
     const findNextAvailableIndex = (team: FullCombatant[], startIndex: number = 0): number => {
         for (let i = 0; i < team.length; i++) {
@@ -158,27 +165,58 @@ export function BattleScene({
         if (controlsLocked || isPlayerTurn || battleMessage || showPlayerSwitchPrompt || isSwapping || !activeEnemy || activeEnemy.isFainted) {
             return;
         }
-        console.log(`[DEBUG] enemyTurn attacking ${activePlayer?.name}`);
+        console.log(`[DEBUG] enemyTurn: ${activeEnemy.name} attacking ${activePlayer?.name}`);
         const enemyMoveKey = activeEnemy.moves[Math.floor(Math.random() * activeEnemy.moves.length)];
         if (!enemyMoveKey || !activePlayer) {
-            if (!battleMessage && !controlsLocked) setIsPlayerTurn(true); return;
+            if (!battleMessage && !controlsLocked) setIsPlayerTurn(true); 
+            return;
         }
 
-        const turnResult = takeTurn(activeEnemy, activePlayer, enemyMoveKey);
-        let newPlayerTeam = playerTeam.map((c, idx) =>
-            idx === activePlayerIndex ? { ...c, stats: { ...c.stats, hp: turnResult.defenderHp } } : c
-        );
-        setLog(prev => [...prev, turnResult.log]);
+        console.log("[DEBUG BattleScene enemyTurn] activeEnemy.statusConditions BEFORE stringify:", activeEnemy?.statusConditions);
+        console.log("[DEBUG BattleScene enemyTurn] activePlayer.statusConditions BEFORE stringify:", activePlayer?.statusConditions);
 
-        if (newPlayerTeam[activePlayerIndex].stats.hp <= 0) {
-            newPlayerTeam = newPlayerTeam.map((c, idx) =>
-                idx === activePlayerIndex ? { ...c, isFainted: true, stats: { ...c.stats, hp: 0 } } : c
-            );
-            setPlayerTeam(newPlayerTeam);
-            processFaint('player'); 
+        // Make deep copies for takeTurn to modify
+        const enemyCombatantForTurn = JSON.parse(JSON.stringify(activeEnemy));
+        const playerCombatantForTurn = JSON.parse(JSON.stringify(activePlayer));
+
+        const turnResult = takeTurn(enemyCombatantForTurn, playerCombatantForTurn, enemyMoveKey);
+
+        console.log("[DEBUG BattleScene enemyTurn] turnResult.attackerState.statusConditions:", turnResult.attackerState.statusConditions);
+        console.log("[DEBUG BattleScene enemyTurn] turnResult.defenderState.statusConditions:", turnResult.defenderState.statusConditions);
+
+        setLog(prev => [...prev, ...turnResult.logs]);
+
+        // Update enemy (attacker) and player (defender) states from turnResult
+        let updatedEnemyTeam = enemyTeam.map((c, idx) => 
+            idx === activeEnemyIndex ? { ...turnResult.attackerState, isFainted: turnResult.attackerState.stats.hp <= 0 } : c
+        );
+        let updatedPlayerTeam = playerTeam.map((c, idx) => 
+            idx === activePlayerIndex ? { ...turnResult.defenderState, isFainted: turnResult.defenderState.stats.hp <= 0 } : c
+        );
+
+        setEnemyTeam(updatedEnemyTeam);
+        setPlayerTeam(updatedPlayerTeam);
+
+        // Post-turn processing based on outcome
+        const currentAttacker = updatedEnemyTeam[activeEnemyIndex]; // Enemy is the attacker
+        const currentDefender = updatedPlayerTeam[activePlayerIndex]; // Player is the defender
+
+        if (turnResult.outcome === "fainted_target" && currentDefender.isFainted) {
+            processFaint('player'); // Player (defender) fainted
+        } else if (turnResult.outcome === "self_hit" && currentAttacker.isFainted) {
+            // Enemy (attacker) fainted from self-hit confusion
+            processFaint('enemy');
+        } else if (turnResult.outcome === "no_effect" && currentAttacker.isFainted) {
+            // Enemy (attacker) fainted from status at start of turn
+            processFaint('enemy');
         } else {
-            setPlayerTeam(newPlayerTeam);
-            if (!battleMessage && !controlsLocked) setIsPlayerTurn(true);
+            // For "normal", "miss", "self_hit" (if not fainted), or "no_effect" (if not fainted)
+            // the turn should pass to the player if no one fainted in a game-ending way.
+            if (!checkBattleEndAndUpdateState()) {
+                if (turnResult.outcome !== "self_hit" || !currentAttacker.isFainted) {
+                    setIsPlayerTurn(true);
+                }
+            }
         }
     }
 
@@ -189,21 +227,51 @@ export function BattleScene({
         console.log(`[DEBUG] handleMove: ${activePlayer.name} attacking ${activeEnemy?.name}`);
         if (!activeEnemy) return;
 
-        const turnResult = takeTurn(activePlayer, activeEnemy, moveKey);
-        let newEnemyTeam = enemyTeam.map((c, idx) =>
-            idx === activeEnemyIndex ? { ...c, stats: { ...c.stats, hp: turnResult.defenderHp } } : c
-        );
-        setLog(prev => [...prev, turnResult.log]);
+        console.log("[DEBUG BattleScene handleMove] activePlayer.statusConditions BEFORE stringify:", activePlayer?.statusConditions);
+        console.log("[DEBUG BattleScene handleMove] activeEnemy.statusConditions BEFORE stringify:", activeEnemy?.statusConditions);
 
-        if (newEnemyTeam[activeEnemyIndex].stats.hp <= 0) {
-            newEnemyTeam = newEnemyTeam.map((c, idx) =>
-                idx === activeEnemyIndex ? { ...c, isFainted: true, stats: { ...c.stats, hp: 0 } } : c
-            );
-            setEnemyTeam(newEnemyTeam);
-            processFaint('enemy'); 
+        // Make deep copies for takeTurn to modify
+        const playerCombatantForTurn = JSON.parse(JSON.stringify(activePlayer));
+        const enemyCombatantForTurn = JSON.parse(JSON.stringify(activeEnemy));
+
+        const turnResult = takeTurn(playerCombatantForTurn, enemyCombatantForTurn, moveKey);
+
+        console.log("[DEBUG BattleScene handleMove] turnResult.attackerState.statusConditions:", turnResult.attackerState.statusConditions);
+        console.log("[DEBUG BattleScene handleMove] turnResult.defenderState.statusConditions:", turnResult.defenderState.statusConditions);
+        
+        setLog(prev => [...prev, ...turnResult.logs]);
+
+        // Update player and enemy states from turnResult
+        let updatedPlayerTeam = playerTeam.map((c, idx) => 
+            idx === activePlayerIndex ? { ...turnResult.attackerState, isFainted: turnResult.attackerState.stats.hp <= 0 } : c
+        );
+        let updatedEnemyTeam = enemyTeam.map((c, idx) => 
+            idx === activeEnemyIndex ? { ...turnResult.defenderState, isFainted: turnResult.defenderState.stats.hp <= 0 } : c
+        );
+
+        setPlayerTeam(updatedPlayerTeam);
+        setEnemyTeam(updatedEnemyTeam);
+
+        // Post-turn processing based on outcome
+        const currentAttacker = updatedPlayerTeam[activePlayerIndex];
+        const currentDefender = updatedEnemyTeam[activeEnemyIndex];
+
+        if (turnResult.outcome === "fainted_target" && currentDefender.isFainted) {
+            processFaint('enemy');
+        } else if (turnResult.outcome === "self_hit" && currentAttacker.isFainted) {
+            // Attacker fainted from self-hit confusion
+            processFaint('player');
+        } else if (turnResult.outcome === "no_effect" && currentAttacker.isFainted) {
+             // Attacker fainted from status at start of turn
+             processFaint('player');
         } else {
-            setEnemyTeam(newEnemyTeam);
-            if (!battleMessage && !controlsLocked) setIsPlayerTurn(false);
+            // For "normal", "miss", "self_hit" (if not fainted), or "no_effect" (if not fainted)
+            // the turn should pass to the enemy if no one fainted in a game-ending way.
+            if (!checkBattleEndAndUpdateState()) { // checkBattleEnd also locks controls if game over
+                 if (turnResult.outcome !== "self_hit" || !currentAttacker.isFainted) { // if self_hit and fainted, processFaint handles it
+                    setIsPlayerTurn(false);
+                 }
+            }
         }
     }
     

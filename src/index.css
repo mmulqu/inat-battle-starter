@@ -33,3 +33,32 @@ body {
     height: 64px;
   }
   
+  /* Status Condition Icons */
+  .status-conditions-container {
+    margin-left: 8px;
+  }
+  
+  .status-icon {
+    display: inline-block;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 4px;
+    color: white;
+    min-width: 1em;
+    text-align: center;
+  }
+  
+  .status-poison {
+    background-color: purple;
+  }
+  
+  .status-confusion {
+    background-color: orange;
+  }
+  
+  .status-blindness {
+    background-color: slategray;
+  }
+  

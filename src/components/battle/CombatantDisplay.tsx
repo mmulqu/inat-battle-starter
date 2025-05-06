@@ -23,7 +23,17 @@ export function CombatantDisplay({
   return (
     <div className={`combatant-display ${isPlayer ? 'player' : 'enemy'} ${isActive ? 'active' : ''}`}>
       <img src={spriteSrc} className="sprite" alt={combatant.name} />
-      <div>{combatant.name} (HP: {combatant.stats.hp})</div>
+      <div>
+        {combatant.name} (HP: {combatant.stats.hp})
+        {/* Display Status Conditions Icons */}
+        <span className="status-conditions-container">
+          {combatant.statusConditions && combatant.statusConditions.map(status => (
+            <span key={status.type} title={`${status.type}${status.duration ? ` (${status.duration})` : ''}`} className={`status-icon status-${status.type.toLowerCase()}`}>
+              {status.type.charAt(0).toUpperCase()}
+            </span>
+          ))}
+        </span>
+      </div>
       {/* Pass maxHp from the combatant object */}
       <HPBar currentHp={combatant.stats.hp} maxHp={combatant.maxHp} />
     </div>

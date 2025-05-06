@@ -16,16 +16,19 @@ const createCombatantFromSpecies = (
     originalSpeciesId: SpeciesId // Pass the original SpeciesId
 ): Combatant & { maxHp: number; speciesId: SpeciesId; isFainted: boolean } => {
     const initialStats = JSON.parse(JSON.stringify(speciesData.stats));
-    return {
+    const combatantObject = {
         id: `${ownerName}-${speciesData.id}-${Math.random().toString(36).substring(7)}`, // More unique ID
         name: speciesData.name,
         type: speciesData.type,
         stats: initialStats,
         moves: [...speciesData.moves],
+        statusConditions: [], // Initialize statusConditions as an empty array
         maxHp: initialStats.hp,
         speciesId: originalSpeciesId, // Store the original species ID for sprite mapping
         isFainted: false, // Add fainted status
     };
+    console.log("[DEBUG App.tsx createCombatantFromSpecies] Creating combatant:", combatantObject.name, "statusConditions:", combatantObject.statusConditions);
+    return combatantObject;
 };
 
 // Add 'gameOver' to GameView
