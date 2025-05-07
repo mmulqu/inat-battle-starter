@@ -119,8 +119,8 @@ export function BattleScene({
                     console.log(`[DEBUG processFaint] Enemy fainted. Next enemy index: ${nextEnemyIdx}. Setting new active enemy.`);
                     setActiveEnemyIndex(nextEnemyIdx);
                     setLog(prev => [...prev, `${player2Name} sends out ${enemyTeam[nextEnemyIdx].name}!`]);
-                    console.log("[DEBUG processFaint] Setting isPlayerTurn=true, controlsLocked=false (for player's next move)");
-                    setIsPlayerTurn(true); 
+                    console.log("[DEBUG processFaint] Enemy fainted, new enemy selected. Setting isPlayerTurn=false (for new enemy's turn), controlsLocked=false.");
+                    setIsPlayerTurn(false); 
                     setControlsLocked(false); 
                 } else {
                     console.log("[DEBUG processFaint] All enemies fainted. Game should end.");
@@ -208,8 +208,8 @@ export function BattleScene({
             processFaint('enemy');
         } else {
             if (!checkBattleEndAndUpdateState()) {
-                if (turnResult.outcome !== "self_hit" || !currentAttackerAfterTurn.isFainted) {
-                    setIsPlayerTurn(true);
+                if (!(currentAttackerAfterTurn.isFainted && findNextAvailableIndex(updatedEnemyTeam, activeEnemyIndex) === -1)) {
+                     setIsPlayerTurn(true);
                 }
             }
         }
@@ -248,7 +248,7 @@ export function BattleScene({
              processFaint('player');
         } else {
             if (!checkBattleEndAndUpdateState()) { 
-                 if (turnResult.outcome !== "self_hit" || !currentAttackerAfterTurn.isFainted) { 
+                 if (!(currentAttackerAfterTurn.isFainted && findNextAvailableIndex(updatedPlayerTeam, activePlayerIndex) === -1)) {
                     setIsPlayerTurn(false);
                  }
             }
@@ -279,86 +279,100 @@ export function BattleScene({
 
     return (
         <div className="battle-wrapper">
+            {/* Team Info Header - Stays above columns */}
              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', padding: '0 10px', fontWeight: 'bold' }}>
                 <span>{player1Name} (Team: {playerTeam.filter(c=>!c.isFainted).length}/{playerTeam.length})</span>
                 <span>{player2Name} (Team: {enemyTeam.filter(c=>!c.isFainted).length}/{enemyTeam.length})</span>
             </div>
 
-            {activeEnemy && (
-                <div style={{ textAlign: 'center', marginBottom: '16px', opacity: (isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.7 : 1.0 }}>
-                    <CombatantDisplay 
-                        combatant={activeEnemy} 
-                        isActive={!isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} 
-                        actionState={activeEnemy.id === attackingCombatantId ? 'attacking' : 'idle'}
-                    />
-                </div>
-            )}
-            <hr style={{ margin: '16px 0', opacity: 0.4 }} />
-            {activePlayer && (
-                <div style={{ textAlign: 'center', marginTop: '16px', opacity: (!isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.7 : 1.0 }}>
-                <CombatantDisplay 
-                    combatant={activePlayer} 
-                    isPlayer={true} 
-                    isActive={isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} 
-                    actionState={activePlayer.id === attackingCombatantId ? 'attacking' : 'idle'}
-                />
-                </div>
-            )}
+            {/* Main Battle Area - Flex Container */}
+            <div className="battle-main-area">
 
-            {isSwapping && !controlsLocked && !battleMessage && (
-                <div style={{ marginTop: '20px', padding: '15px', background: '#4a5170', borderRadius: '5px', textAlign: 'center' }}>
-                    <p>Choose a creature to swap in:</p>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                        {playerTeam.map((member, index) => (
-                            index !== activePlayerIndex && !member.isFainted && (
-                                <button
-                                    key={member.id}
-                                    onClick={() => handleConfirmSwap(index)}
-                                    style={{ padding: '8px 12px', background: '#5cb85c', color: 'white', border: 'none', borderRadius: '4px'}}
-                                >
-                                    {member.name} (HP: {member.stats.hp}/{member.maxHp})
-                                </button>
-                            )
-                        ))}
-                    </div>
-                    <button onClick={handleCancelSwap} style={{ padding: '8px 12px', background: '#d9534f', color: 'white', border: 'none', borderRadius: '4px'}}>
-                        Cancel Swap
-                    </button>
-                </div>
-            )}
+                {/* Left Column */}
+                <div className="battle-left-column">
+                    {activeEnemy && (
+                        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                            <CombatantDisplay 
+                                combatant={activeEnemy} 
+                                isActive={!isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} 
+                                actionState={activeEnemy.id === attackingCombatantId ? 'attacking' : 'idle'}
+                            />
+                        </div>
+                    )}
+                    <hr style={{ margin: '16px 0', opacity: 0.4 }} />
+                    {activePlayer && (
+                        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                            <CombatantDisplay 
+                                combatant={activePlayer} 
+                                isPlayer={true} 
+                                isActive={isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} 
+                                actionState={activePlayer.id === attackingCombatantId ? 'attacking' : 'idle'} 
+                            />
+                        </div>
+                    )}
 
-            {showPlayerSwitchPrompt && !isSwapping && !battleMessage && !controlsLocked && (
-                <div style={{ marginTop: '20px', padding: '15px', background: '#4a5170', borderRadius: '5px', textAlign: 'center' }}>
-                    <p>{activePlayer?.name || 'Your creature'} fainted! Choose your next creature:</p>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                        {playerTeam.map((member, index) => (
-                            !member.isFainted && (
-                                <button key={member.id} onClick={() => handlePlayerSwitch(index)}
-                                    style={{ padding: '8px 12px', background: '#3ad87b', color: 'white', border: 'none', borderRadius: '4px'}}>
-                                    {member.name} (HP: {member.stats.hp}/{member.maxHp})
-                                </button>
-                            )
-                        ))}
-                    </div>
-                </div>
-            )}
+                    {/* Conditional UIs - Now correctly placed */}
+                    {isSwapping && !controlsLocked && !battleMessage && (
+                        <div style={{ marginTop: '20px', padding: '15px', background: '#4a5170', borderRadius: '5px', textAlign: 'center' }}>
+                            <p>Choose a creature to swap in:</p>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                                {playerTeam.map((member, index) => (
+                                    index !== activePlayerIndex && !member.isFainted && (
+                                        <button
+                                            key={member.id}
+                                            onClick={() => handleConfirmSwap(index)}
+                                            style={{ padding: '8px 12px', background: '#5cb85c', color: 'white', border: 'none', borderRadius: '4px'}}
+                                        >
+                                            {member.name} (HP: {member.stats.hp}/{member.maxHp})
+                                        </button>
+                                    )
+                                ))}
+                            </div>
+                            <button onClick={handleCancelSwap} style={{ padding: '8px 12px', background: '#d9534f', color: 'white', border: 'none', borderRadius: '4px'}}>
+                                Cancel Swap
+                            </button>
+                        </div>
+                    )}
 
-            {!controlsLocked && !battleMessage && !showPlayerSwitchPrompt && !isSwapping && activePlayer && !activePlayer.isFainted && (
-                <PlayerControls
-                    playerCombatant={activePlayer}
-                    onMoveSelect={handleMove}
-                    onSwapInitiate={handleInitiateSwap} 
-                    canSwap={canPlayerSwap}              
-                    disabled={!isPlayerTurn || controlsLocked}
-                />
-            )}
+                    {showPlayerSwitchPrompt && !isSwapping && !battleMessage && !controlsLocked && (
+                        <div style={{ marginTop: '20px', padding: '15px', background: '#4a5170', borderRadius: '5px', textAlign: 'center' }}>
+                            <p>{activePlayer?.name || 'Your creature'} fainted! Choose your next creature:</p>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                {playerTeam.map((member, index) => (
+                                    !member.isFainted && (
+                                        <button key={member.id} onClick={() => handlePlayerSwitch(index)}
+                                            style={{ padding: '8px 12px', background: '#3ad87b', color: 'white', border: 'none', borderRadius: '4px'}}>
+                                            {member.name} (HP: {member.stats.hp}/{member.maxHp})
+                                        </button>
+                                    )
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
-            {battleMessage && !controlsLocked && ( 
-                <div style={{ textAlign: 'center', marginTop: '20px', padding: '15px', background: '#1f2333', borderRadius: '5px', fontWeight: 'bold', fontSize: '1.2em' }}>
-                    {battleMessage}
+                    {!controlsLocked && !battleMessage && !showPlayerSwitchPrompt && !isSwapping && activePlayer && !activePlayer.isFainted && (
+                        <PlayerControls
+                            playerCombatant={activePlayer}
+                            onMoveSelect={handleMove}
+                            onSwapInitiate={handleInitiateSwap} 
+                            canSwap={canPlayerSwap}              
+                            disabled={!isPlayerTurn || controlsLocked}
+                        />
+                    )}
+                    
+                    {battleMessage && !controlsLocked && ( 
+                        <div style={{ textAlign: 'center', marginTop: '20px', padding: '15px', background: '#1f2333', borderRadius: '5px', fontWeight: 'bold', fontSize: '1.2em' }}>
+                            {battleMessage}
+                        </div>
+                    )}
                 </div>
-            )}
-            <BattleLog entries={log} />
+
+                {/* Right Column */}
+                <div className="battle-right-column">
+                    <BattleLog entries={log} />
+                </div>
+
+            </div> {/* End battle-main-area */}     
         </div>
     );
 }

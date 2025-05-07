@@ -109,7 +109,7 @@ export function CombatantDisplay({
     prevHpRef.current = combatant.stats.hp;
   }, [combatant.stats.hp]);
 
-  const DISPLAY_SIZE = 64; // Desired on-screen size for the sprite
+  const DISPLAY_SIZE = 320; // CHANGED: Desired on-screen size for the sprite (e.g., 128px)
 
   const spriteStyle: React.CSSProperties = currentAnimation ? {
     width: `${currentAnimation.frameWidth}px`,      // Actual frame width (e.g., 256px)
@@ -141,7 +141,7 @@ export function CombatantDisplay({
         role="img" /* Accessibility for div-as-image */ 
         aria-label={combatant.name} 
       />
-      <div>
+      <div className="combatant-info-text">
         {combatant.name} (HP: {combatant.stats.hp})
         <span className="status-conditions-container">
           {combatant.statusConditions && combatant.statusConditions.map(status => (

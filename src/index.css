@@ -19,7 +19,7 @@ body {
   .hp-bar {
     height: 8px;
     background: #444;
-    margin: 4px 0 12px;
+    margin: 4px 0 4px;
     border-radius: 4px;
     overflow: hidden;
   }
@@ -87,7 +87,7 @@ body {
   /* Combatant Display Styles */
   .combatant-display {
     transition: opacity 0.3s ease-in-out, border-color 0.3s ease-in-out;
-    padding: 10px;
+    padding: 5px;
     border: 2px solid transparent; /* Default transparent border */
     border-radius: 8px; /* Match other rounded elements */
     background-color: rgba(0,0,0,0.1); /* Slight background tint for the area */
@@ -112,4 +112,11 @@ body {
     ...
   }
   */
+  
+.combatant-info-text {
+  margin-top: 4px; /* Small space above text if needed */
+  margin-bottom: 2px; /* Minimal space below text, before HP bar */
+  line-height: 1.2; /* Adjust if text feels too tall */
+  font-size: 0.9em; /* Optionally make text slightly smaller */
+}
   
