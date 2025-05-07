@@ -42,16 +42,16 @@ export const speciesAnimations: Partial<Record<SpeciesId, SpeciesAnimationSet>> 
       sheet: jumpingSpiderIdleSheet, // Use imported variable
       frames: 4, // Example: 4 frames for idle
       fps: 8,
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: true,
     },
     attack: {
       sheet: jumpingSpiderAttackSheet, // Use imported variable
       frames: 6, // Example: 6 frames for attack
       fps: 12,
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: false,
     },
   },
@@ -60,16 +60,16 @@ export const speciesAnimations: Partial<Record<SpeciesId, SpeciesAnimationSet>> 
       sheet: rockfishIdleSheet, // Use imported variable
       frames: 3,
       fps: 6,
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: true,
     },
     attack: {
       sheet: rockfishAttackSheet, // Use imported variable
       frames: 5,
       fps: 10,
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: false,
     },
   },
@@ -77,15 +77,15 @@ export const speciesAnimations: Partial<Record<SpeciesId, SpeciesAnimationSet>> 
     idle: {
       sheet: puffballIdleSheet,
       frames: 3, fps: 7, 
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: true,
     },
     attack: {
       sheet: puffballAttackSheet,
       frames: 4, fps: 10, 
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: false,
     },
   },
@@ -93,15 +93,15 @@ export const speciesAnimations: Partial<Record<SpeciesId, SpeciesAnimationSet>> 
     idle: {
       sheet: dragonflyIdleSheet,
       frames: 4, fps: 12, 
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: true,
     },
     attack: {
       sheet: dragonflyAttackSheet,
       frames: 5, fps: 15, 
-      frameWidth: 256, // Corrected
-      frameHeight: 256, // Corrected
+      frameWidth: 512, // Corrected
+      frameHeight: 512, // Corrected
       loop: false,
     },
   },
