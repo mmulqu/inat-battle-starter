@@ -118,5 +118,6 @@ export interface MoveData {
     type: string;
     category: "offense" | "defense" | "status";
     effects?: MoveEffect[];
+    accuracy?: number;
 }
   

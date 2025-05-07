@@ -1,6 +1,15 @@
 import { moves, MoveData, ApplyStatusEffect } from "../data/moves";
 import { SpeciesId } from "../data/species";
 
+// Accuracy and Evasion Constants
+const DEFAULT_MOVE_ACCURACY = 0.95; // Default accuracy if move doesn't specify one (e.g., 95%)
+const BLINDNESS_ACCURACY_MULTIPLIER = 0.5; // Blindness reduces accuracy by 50%
+const SPEED_SCALING_DIVISOR = 10;    // For every X points of speed difference
+const DODGE_PERCENT_PER_SCALING_GROUP = 0.05; // Y% increased dodge chance
+const MAX_SPEED_DODGE_BONUS = 0.30;  // Max dodge chance bonus from speed alone (e.g., 30%)
+const MIN_HIT_CHANCE = 0.10;         // Minimum hit chance (e.g., 10%)
+const MAX_HIT_CHANCE = 1.0;          // Maximum possible hit chance (100%)
+
 // Add new interface ActiveStatusCondition
 export interface ActiveStatusCondition {
     type: "poison" | "confusion" | "blindness"; // etc.
@@ -288,23 +297,61 @@ export function handleStartOfTurnStatuses(combatant: Combatant) {
 export function checkAccuracy(
   attacker: Combatant,
   defender: Combatant,
-  move: MoveData // Added move parameter
+  move: MoveData
 ) {
   let logMessages: string[] = [];
+  // Start with move's own accuracy, or default if not specified
+  let currentHitChance = move.accuracy ?? DEFAULT_MOVE_ACCURACY;
 
-  // Check for blindness on the attacker for offensive moves
+  // Only apply these checks for offensive moves, or perhaps configurable per move category
   if (move.category === "offense") {
-    const isBlind = attacker.statusConditions.find(sc => sc.type === "blindness");
-    if (isBlind) {
-      // Let's say 50% miss chance if blind
-      if (Math.random() < 0.5) {
-        logMessages.push(`${attacker.name} is blind and missed!`);
-        return { hit: false, logs: logMessages };
+    // 1. Blindness Check (Attacker)
+    const isAttackerBlind = attacker.statusConditions.find(sc => sc.type === "blindness");
+    if (isAttackerBlind) {
+      currentHitChance *= BLINDNESS_ACCURACY_MULTIPLIER;
+      // No specific log here for blindness reducing hit chance, 
+      // it contributes to the overall miss if it happens.
+      // A log could be added if desired: logMessages.push(`${attacker.name} is blind, making the attack less accurate!`);
+    }
+
+    // 2. Speed-Based Dodge Calculation (Defender)
+    const speedDifference = defender.stats.spd - attacker.stats.spd;
+    let dodgeChanceIncrease = 0;
+
+    if (speedDifference > 0) {
+      // Calculate how many "groups" of speed points the defender is faster by
+      const speedAdvantageGroups = Math.floor(speedDifference / SPEED_SCALING_DIVISOR);
+      if (speedAdvantageGroups > 0) {
+        dodgeChanceIncrease = speedAdvantageGroups * DODGE_PERCENT_PER_SCALING_GROUP;
+        // Cap the dodge bonus from speed
+        dodgeChanceIncrease = Math.min(dodgeChanceIncrease, MAX_SPEED_DODGE_BONUS);
       }
     }
-  }
+    currentHitChance -= dodgeChanceIncrease;
 
-  // TODO: Implement other accuracy modifiers (e.g., move-specific accuracy, evasion stats)
+    // Apply overall Min/Max Hit Chance limits AFTER all modifiers
+    currentHitChance = Math.max(MIN_HIT_CHANCE, currentHitChance);
+    currentHitChance = Math.min(MAX_HIT_CHANCE, currentHitChance);
+
+  } else {
+    // For non-offensive moves (status, defense), assume they always hit for now.
+    // This could be made configurable per move if some status moves should also miss.
+    return { hit: true, logs: logMessages };
+  }
   
-  return { hit: true, logs: logMessages }; // Default to hit if no conditions cause a miss
+  // Roll for the hit
+  const hitRoll = Math.random();
+  if (hitRoll < currentHitChance) {
+    return { hit: true, logs: logMessages }; // Hit!
+  } else {
+    // Missed! Determine primary reason for log if possible, or a generic miss.
+    if (move.category === "offense") {
+        // If dodgeChanceIncrease was significant, it might be a speed-based miss.
+        // The check for blindness is already factored into currentHitChance.
+        // For a more specific log, you might need to check which factor was dominant.
+        // For now, a generic miss log when accuracy check fails.
+        logMessages.push(`${attacker.name}'s ${move.name} missed ${defender.name}!`);
+    }
+    return { hit: false, logs: logMessages }; // Miss!
+  }
 }

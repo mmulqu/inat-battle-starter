@@ -13,6 +13,7 @@ body {
     padding: 24px;
     width: 360px;
     box-shadow: 0 4px 14px rgba(0,0,0,.45);
+    position: relative;
   }
   
   .hp-bar {
@@ -29,8 +30,14 @@ body {
   
   .sprite {
     image-rendering: pixelated;
-    width: 64px;
-    height: 64px;
+    display: inline-block; 
+    background-repeat: no-repeat; 
+    /* FOR DEBUGGING: Hardcode a background image to test CSS rendering */
+    /* background-image: url('/src/assets/sprites/jumping_spider_idle_strip.png'); */
+    /* Ensure width and height are also set if testing this way, e.g.: */
+    /* width: 256px; */ /* (frameWidth * frames) for the whole strip if not animating position */
+    /* height: 64px; */
+    /* border: 1px dashed blue; */ /* Another debug border */
   }
   
   /* Status Condition Icons */
@@ -61,4 +68,48 @@ body {
   .status-blindness {
     background-color: slategray;
   }
+  
+  /* Damage Flash Animation */
+  .sprite.taking-damage-flash {
+    animation: damage-flash 0.3s ease-in-out 1;
+  }
+  
+  @keyframes damage-flash {
+    0%, 100% {
+      filter: brightness(100%);
+    }
+    50% {
+      filter: brightness(70%) sepia(1) hue-rotate(-50deg) saturate(5);
+      /* A less intense red flash, adjust values as needed */
+    }
+  }
+  
+  /* Combatant Display Styles */
+  .combatant-display {
+    transition: opacity 0.3s ease-in-out, border-color 0.3s ease-in-out;
+    padding: 10px;
+    border: 2px solid transparent; /* Default transparent border */
+    border-radius: 8px; /* Match other rounded elements */
+    background-color: rgba(0,0,0,0.1); /* Slight background tint for the area */
+  }
+  
+  .combatant-display.active {
+    opacity: 1.0 !important; /* Ensure it's fully visible */
+    border-color: #FFC107; /* Golden-yellow border for active turn */
+    box-shadow: 0 0 12px rgba(255, 193, 7, 0.7); /* Golden-yellow glow */
+  }
+  
+  .combatant-display:not(.active) {
+     opacity: 0.6; /* Dim inactive combatants more clearly */
+  }
+  
+  /* Remove the .turn-transition-overlay styles as they are no longer used */
+  /* 
+  .turn-transition-overlay {
+    ...
+  }
+  @keyframes slide-fade-in-out {
+    ...
+  }
+  */
   

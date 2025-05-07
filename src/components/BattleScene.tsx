@@ -8,6 +8,8 @@ import { CombatantDisplay } from './battle/CombatantDisplay';
 import { PlayerControls } from './battle/PlayerControls';
 import { BattleLog } from './battle/BattleLog';
 
+const ATTACK_ANIMATION_DURATION = 600; // Duration in milliseconds for the attack animation
+
 type FullCombatant = Combatant & { maxHp: number; speciesId: SpeciesId; isFainted: boolean };
 
 interface BattleSceneProps {
@@ -35,6 +37,7 @@ export function BattleScene({
     const [showPlayerSwitchPrompt, setShowPlayerSwitchPrompt] = useState(false);
     const [controlsLocked, setControlsLocked] = useState(false);
     const [isSwapping, setIsSwapping] = useState(false);
+    const [attackingCombatantId, setAttackingCombatantId] = useState<string | null>(null);
 
     const activePlayer = useMemo(() => playerTeam[activePlayerIndex], [playerTeam, activePlayerIndex]);
     const activeEnemy = useMemo(() => enemyTeam[activeEnemyIndex], [enemyTeam, activeEnemyIndex]);
@@ -102,25 +105,30 @@ export function BattleScene({
 
     const processFaint = (faintedSide: 'player' | 'enemy') => {
         const faintedCreature = faintedSide === 'player' ? activePlayer : activeEnemy;
+        console.log(`[DEBUG processFaint] ${faintedCreature?.name} fainted. Side: ${faintedSide}`);
         setLog(prev => [...prev, `${faintedCreature?.name || "A creature"} fainted!`]);
 
-        // Game end is now primarily handled by the useEffect above.
-        // This function handles immediate consequences if the game hasn't ended.
-
-        if (!battleMessage && !controlsLocked) { // Check if game hasn't already been marked as ended
+        if (!battleMessage && !controlsLocked) { 
             if (faintedSide === 'player') {
+                console.log("[DEBUG processFaint] Player creature fainted. Showing switch prompt.");
                 setShowPlayerSwitchPrompt(true);
+                setControlsLocked(false); // Ensure controls are conceptually available for switching
             } else { // Enemy fainted
                 const nextEnemyIdx = findNextAvailableIndex(enemyTeam, (activeEnemyIndex + 1) % enemyTeam.length);
                 if (nextEnemyIdx !== -1) {
+                    console.log(`[DEBUG processFaint] Enemy fainted. Next enemy index: ${nextEnemyIdx}. Setting new active enemy.`);
                     setActiveEnemyIndex(nextEnemyIdx);
                     setLog(prev => [...prev, `${player2Name} sends out ${enemyTeam[nextEnemyIdx].name}!`]);
+                    console.log("[DEBUG processFaint] Setting isPlayerTurn=true, controlsLocked=false (for player's next move)");
                     setIsPlayerTurn(true); 
+                    setControlsLocked(false); 
                 } else {
-                    // If no next enemy, the useEffect checking team states should catch this for game end.
-                    console.log("[DEBUG] processFaint (enemy): No next enemy. Game end should be handled by useEffect.");
+                    console.log("[DEBUG processFaint] All enemies fainted. Game should end.");
+                    // checkBattleEndAndUpdateState() called by useEffect should handle this.
                 }
             }
+        } else {
+            console.log("[DEBUG processFaint] Skipped processing: battleMessage or controlsLocked active.", {battleMessage, controlsLocked});
         }
     };
 
@@ -145,7 +153,9 @@ export function BattleScene({
         setActivePlayerIndex(newIndex);
         setLog(prev => [...prev, `${player1Name} withdraws ${oldCreatureName} and sends out ${newCreatureName}!`]);
         setIsSwapping(false);
-        setIsPlayerTurn(false);
+        if (!checkBattleEndAndUpdateState()) {
+            setIsPlayerTurn(false);
+        }
     };
 
     const handleCancelSwap = () => {
@@ -165,28 +175,18 @@ export function BattleScene({
         if (controlsLocked || isPlayerTurn || battleMessage || showPlayerSwitchPrompt || isSwapping || !activeEnemy || activeEnemy.isFainted) {
             return;
         }
-        console.log(`[DEBUG] enemyTurn: ${activeEnemy.name} attacking ${activePlayer?.name}`);
         const enemyMoveKey = activeEnemy.moves[Math.floor(Math.random() * activeEnemy.moves.length)];
         if (!enemyMoveKey || !activePlayer) {
             if (!battleMessage && !controlsLocked) setIsPlayerTurn(true); 
             return;
         }
 
-        console.log("[DEBUG BattleScene enemyTurn] activeEnemy.statusConditions BEFORE stringify:", activeEnemy?.statusConditions);
-        console.log("[DEBUG BattleScene enemyTurn] activePlayer.statusConditions BEFORE stringify:", activePlayer?.statusConditions);
-
-        // Make deep copies for takeTurn to modify
         const enemyCombatantForTurn = JSON.parse(JSON.stringify(activeEnemy));
         const playerCombatantForTurn = JSON.parse(JSON.stringify(activePlayer));
 
         const turnResult = takeTurn(enemyCombatantForTurn, playerCombatantForTurn, enemyMoveKey);
-
-        console.log("[DEBUG BattleScene enemyTurn] turnResult.attackerState.statusConditions:", turnResult.attackerState.statusConditions);
-        console.log("[DEBUG BattleScene enemyTurn] turnResult.defenderState.statusConditions:", turnResult.defenderState.statusConditions);
-
         setLog(prev => [...prev, ...turnResult.logs]);
 
-        // Update enemy (attacker) and player (defender) states from turnResult
         let updatedEnemyTeam = enemyTeam.map((c, idx) => 
             idx === activeEnemyIndex ? { ...turnResult.attackerState, isFainted: turnResult.attackerState.stats.hp <= 0 } : c
         );
@@ -197,23 +197,18 @@ export function BattleScene({
         setEnemyTeam(updatedEnemyTeam);
         setPlayerTeam(updatedPlayerTeam);
 
-        // Post-turn processing based on outcome
-        const currentAttacker = updatedEnemyTeam[activeEnemyIndex]; // Enemy is the attacker
-        const currentDefender = updatedPlayerTeam[activePlayerIndex]; // Player is the defender
+        const currentAttackerAfterTurn = updatedEnemyTeam[activeEnemyIndex];
+        const currentDefenderAfterTurn = updatedPlayerTeam[activePlayerIndex];
 
-        if (turnResult.outcome === "fainted_target" && currentDefender.isFainted) {
-            processFaint('player'); // Player (defender) fainted
-        } else if (turnResult.outcome === "self_hit" && currentAttacker.isFainted) {
-            // Enemy (attacker) fainted from self-hit confusion
+        if (turnResult.outcome === "fainted_target" && currentDefenderAfterTurn.isFainted) {
+            processFaint('player'); 
+        } else if (turnResult.outcome === "self_hit" && currentAttackerAfterTurn.isFainted) {
             processFaint('enemy');
-        } else if (turnResult.outcome === "no_effect" && currentAttacker.isFainted) {
-            // Enemy (attacker) fainted from status at start of turn
+        } else if (turnResult.outcome === "no_effect" && currentAttackerAfterTurn.isFainted) {
             processFaint('enemy');
         } else {
-            // For "normal", "miss", "self_hit" (if not fainted), or "no_effect" (if not fainted)
-            // the turn should pass to the player if no one fainted in a game-ending way.
             if (!checkBattleEndAndUpdateState()) {
-                if (turnResult.outcome !== "self_hit" || !currentAttacker.isFainted) {
+                if (turnResult.outcome !== "self_hit" || !currentAttackerAfterTurn.isFainted) {
                     setIsPlayerTurn(true);
                 }
             }
@@ -224,24 +219,14 @@ export function BattleScene({
         if (controlsLocked || !isPlayerTurn || battleMessage || showPlayerSwitchPrompt || isSwapping || !activePlayer || activePlayer.isFainted) {
             return;
         }
-        console.log(`[DEBUG] handleMove: ${activePlayer.name} attacking ${activeEnemy?.name}`);
         if (!activeEnemy) return;
 
-        console.log("[DEBUG BattleScene handleMove] activePlayer.statusConditions BEFORE stringify:", activePlayer?.statusConditions);
-        console.log("[DEBUG BattleScene handleMove] activeEnemy.statusConditions BEFORE stringify:", activeEnemy?.statusConditions);
-
-        // Make deep copies for takeTurn to modify
         const playerCombatantForTurn = JSON.parse(JSON.stringify(activePlayer));
         const enemyCombatantForTurn = JSON.parse(JSON.stringify(activeEnemy));
 
         const turnResult = takeTurn(playerCombatantForTurn, enemyCombatantForTurn, moveKey);
-
-        console.log("[DEBUG BattleScene handleMove] turnResult.attackerState.statusConditions:", turnResult.attackerState.statusConditions);
-        console.log("[DEBUG BattleScene handleMove] turnResult.defenderState.statusConditions:", turnResult.defenderState.statusConditions);
-        
         setLog(prev => [...prev, ...turnResult.logs]);
 
-        // Update player and enemy states from turnResult
         let updatedPlayerTeam = playerTeam.map((c, idx) => 
             idx === activePlayerIndex ? { ...turnResult.attackerState, isFainted: turnResult.attackerState.stats.hp <= 0 } : c
         );
@@ -252,23 +237,18 @@ export function BattleScene({
         setPlayerTeam(updatedPlayerTeam);
         setEnemyTeam(updatedEnemyTeam);
 
-        // Post-turn processing based on outcome
-        const currentAttacker = updatedPlayerTeam[activePlayerIndex];
-        const currentDefender = updatedEnemyTeam[activeEnemyIndex];
+        const currentAttackerAfterTurn = updatedPlayerTeam[activePlayerIndex];
+        const currentDefenderAfterTurn = updatedEnemyTeam[activeEnemyIndex];
 
-        if (turnResult.outcome === "fainted_target" && currentDefender.isFainted) {
+        if (turnResult.outcome === "fainted_target" && currentDefenderAfterTurn.isFainted) {
             processFaint('enemy');
-        } else if (turnResult.outcome === "self_hit" && currentAttacker.isFainted) {
-            // Attacker fainted from self-hit confusion
-            processFaint('player');
-        } else if (turnResult.outcome === "no_effect" && currentAttacker.isFainted) {
-             // Attacker fainted from status at start of turn
+        } else if (turnResult.outcome === "self_hit" && currentAttackerAfterTurn.isFainted) {
+            processFaint('player'); 
+        } else if (turnResult.outcome === "no_effect" && currentAttackerAfterTurn.isFainted) {
              processFaint('player');
         } else {
-            // For "normal", "miss", "self_hit" (if not fainted), or "no_effect" (if not fainted)
-            // the turn should pass to the enemy if no one fainted in a game-ending way.
-            if (!checkBattleEndAndUpdateState()) { // checkBattleEnd also locks controls if game over
-                 if (turnResult.outcome !== "self_hit" || !currentAttacker.isFainted) { // if self_hit and fainted, processFaint handles it
+            if (!checkBattleEndAndUpdateState()) { 
+                 if (turnResult.outcome !== "self_hit" || !currentAttackerAfterTurn.isFainted) { 
                     setIsPlayerTurn(false);
                  }
             }
@@ -306,13 +286,22 @@ export function BattleScene({
 
             {activeEnemy && (
                 <div style={{ textAlign: 'center', marginBottom: '16px', opacity: (isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.7 : 1.0 }}>
-                    <CombatantDisplay combatant={activeEnemy} isActive={!isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} />
+                    <CombatantDisplay 
+                        combatant={activeEnemy} 
+                        isActive={!isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} 
+                        actionState={activeEnemy.id === attackingCombatantId ? 'attacking' : 'idle'}
+                    />
                 </div>
             )}
             <hr style={{ margin: '16px 0', opacity: 0.4 }} />
             {activePlayer && (
                 <div style={{ textAlign: 'center', marginTop: '16px', opacity: (!isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.7 : 1.0 }}>
-                <CombatantDisplay combatant={activePlayer} isPlayer={true} isActive={isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} />
+                <CombatantDisplay 
+                    combatant={activePlayer} 
+                    isPlayer={true} 
+                    isActive={isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} 
+                    actionState={activePlayer.id === attackingCombatantId ? 'attacking' : 'idle'}
+                />
                 </div>
             )}
 
