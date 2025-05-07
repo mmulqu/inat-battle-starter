@@ -34,6 +34,13 @@ export const species: Record<string, SpeciesData> = {
       type: "Flying",
       stats: { hp: 65, atk: 55, def: 45, spd: 70, int: 45 },
       moves: ["wingSlice", "webSnare"] // Reuse a move
+  },
+  rockfish: {
+    id: "rockfish",
+    name: "Rockfish",
+    type: "Water", 
+    stats: { hp: 80, atk: 50, def: 90, spd: 30, int: 75 },
+    moves: ["toxicSting", "harden", "confuseRay"]
   }
 };
 

@@ -5,6 +5,7 @@ import { SpeciesId } from '../data/species';
 import spiderImg from '../assets/sprites/jumping-spider.png';
 import mushroomImg from '../assets/sprites/puffball.png';
 import dragonflyImg from '../assets/sprites/dragonfly.png';
+import rockfishImg from '../assets/sprites/rockfish.png';
 // Add imports for future sprites here...
 
 // Define the map
@@ -12,6 +13,7 @@ const spriteMap: Record<SpeciesId, string> = {
     jumpingSpider: spiderImg,
     puffballMushroom: mushroomImg,
     dragonfly: dragonflyImg,
+    rockfish: rockfishImg,
     // Add entries for future species here...
 };
 
