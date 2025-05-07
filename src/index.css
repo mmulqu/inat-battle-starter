@@ -11,10 +11,30 @@ body {
     background: #2d3248;
     border-radius: 8px;
     padding: 24px;
-    width: 360px;
+    width: 860px; /* Increased width for two columns */
     box-shadow: 0 4px 14px rgba(0,0,0,.45);
     position: relative;
   }
+  
+  /* New Two-Column Layout Styles */
+  .battle-main-area {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px; /* Space between columns */
+  }
+  
+  .battle-left-column {
+    flex: 0 0 60%; /* Takes 60% of the width, doesn't grow or shrink */
+    display: flex;
+    flex-direction: column; /* Stack elements vertically */
+  }
+  
+  .battle-right-column {
+    flex: 0 0 calc(40% - 20px); /* Takes remaining width minus the gap */
+    display: flex;
+    flex-direction: column; /* Ensure log container can be styled for height/scroll */
+  }
+  /* End New Two-Column Layout Styles */
   
   .hp-bar {
     height: 8px;
@@ -86,6 +106,7 @@ body {
   
   /* Combatant Display Styles */
   .combatant-display {
+    display: inline-block;
     transition: opacity 0.3s ease-in-out, border-color 0.3s ease-in-out;
     padding: 5px;
     border: 2px solid transparent; /* Default transparent border */

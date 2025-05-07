@@ -40,68 +40,72 @@ export const speciesAnimations: Partial<Record<SpeciesId, SpeciesAnimationSet>> 
   jumpingSpider: {
     idle: {
       sheet: jumpingSpiderIdleSheet, // Use imported variable
-      frames: 4, // Example: 4 frames for idle
+      frames: 4, // User to verify with their script
       fps: 8,
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frameWidth: 512, // Based on script output trend
+      frameHeight: 512, // Based on script output trend
       loop: true,
     },
     attack: {
       sheet: jumpingSpiderAttackSheet, // Use imported variable
-      frames: 6, // Example: 6 frames for attack
+      frames: 6, // User to verify with their script
       fps: 12,
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frameWidth: 512, // Based on script output trend
+      frameHeight: 512, // Based on script output trend
       loop: false,
     },
   },
   rockfish: {
     idle: {
       sheet: rockfishIdleSheet, // Use imported variable
-      frames: 3,
+      frames: 4,           // Updated based on user script output
       fps: 6,
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frameWidth: 512,     // Updated based on user script output
+      frameHeight: 512,    // Updated based on user script output
       loop: true,
     },
     attack: {
       sheet: rockfishAttackSheet, // Use imported variable
-      frames: 5,
+      frames: 5,           // User to verify with their script
       fps: 10,
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frameWidth: 512,     // Based on script output trend
+      frameHeight: 512,    // Based on script output trend
       loop: false,
     },
   },
   puffballMushroom: {
     idle: {
       sheet: puffballIdleSheet,
-      frames: 3, fps: 7, 
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frames: 3, // User to verify with their script
+      fps: 7, 
+      frameWidth: 512, // Based on script output trend
+      frameHeight: 512, // Based on script output trend
       loop: true,
     },
     attack: {
       sheet: puffballAttackSheet,
-      frames: 4, fps: 10, 
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frames: 4, // User to verify with their script
+      fps: 10, 
+      frameWidth: 512, // Based on script output trend
+      frameHeight: 512, // Based on script output trend
       loop: false,
     },
   },
   dragonfly: {
     idle: {
       sheet: dragonflyIdleSheet,
-      frames: 4, fps: 12, 
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frames: 4, // User to verify with their script
+      fps: 12, 
+      frameWidth: 512, // Based on script output trend
+      frameHeight: 512, // Based on script output trend
       loop: true,
     },
     attack: {
       sheet: dragonflyAttackSheet,
-      frames: 5, fps: 15, 
-      frameWidth: 512, // Corrected
-      frameHeight: 512, // Corrected
+      frames: 5, // User to verify with their script
+      fps: 15, 
+      frameWidth: 512, // Based on script output trend
+      frameHeight: 512, // Based on script output trend
       loop: false,
     },
   },

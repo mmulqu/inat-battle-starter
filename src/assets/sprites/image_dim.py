@@ -14,3 +14,19 @@ print(f"Sheet size: {sheet_w}×{sheet_h}")
 frame_w = sheet_w // frames
 frame_h = sheet_h
 print(f"Frame size: {frame_w}×{frame_h}")
+
+
+# verify_frames.py
+from PIL import Image
+import pathlib
+
+# --- hard‑coded PNG -----------------------------------------------------------
+p = pathlib.Path(r"C:/Users/mmulq/Projects/inat-battle-starter/src/assets/sprites/rockfish_idle_strip.png")
+
+img = Image.open(p)
+w, h = img.size
+frame_w = frame_h = h            # assumes square cells
+frames  = w // frame_w
+
+print(f"{p.name}: {frames} frames, each {frame_w}×{frame_h}px")
+
