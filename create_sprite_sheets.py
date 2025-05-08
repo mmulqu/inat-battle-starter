@@ -14,7 +14,7 @@ from PIL import Image
 # ─── Configuration ─────────────────────────────────────────────────────────────
 
 # Path to the source image you want to split
-INPUT_IMAGE = "C:/Users/mmulq/Projects/inat-battle-images/rockfish.png"
+INPUT_IMAGE = "C:/Users/mmulq/Downloads/boldjumper.png"
 
 # Hard-coded output directory (must already exist)
 OUTPUT_DIR = "C:/Users/mmulq/Projects/inat-battle-images"

@@ -140,4 +140,40 @@ body {
   line-height: 1.2; /* Adjust if text feels too tall */
   font-size: 0.9em; /* Optionally make text slightly smaller */
 }
+
+/* Battle Log Color Coding */
+.log-entry {
+  /* Common styling for all log entries, if any, can go here */
+  /* For example, consistent margin or padding if not set inline in BattleLog.tsx */
+}
+
+.log-player {
+  color: #88ceff; /* Light Sky Blue */
+}
+
+.log-enemy {
+  color: #ff8888; /* Light Coral */
+}
+
+.log-neutral {
+  color: #dddddd; /* Light Grey */
+}
+
+.log-system {
+  color: #fff099; /* Pale Yellow */
+  font-style: italic;
+}
+
+.log-buff {
+  color: #88ff88; /* Light Green */
+}
+
+.log-debuff {
+  color: #ffcc88; /* Light Orange */
+}
+
+.log-status {
+  color: #ccaaff; /* Light Lavender */
+}
+/* End Battle Log Color Coding */
   

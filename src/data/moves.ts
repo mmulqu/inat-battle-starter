@@ -84,14 +84,21 @@ export const moves: { [key: string]: MoveData } = {
     type: "Ground",
     category: "status",
     effects: [
-        { type: "apply_status", status: "blindness", target: "opponent", duration: 4, chance: 0.8 }
+        { type: "apply_status" as const, status: "blindness", target: "opponent", duration: 4, chance: 0.8 }
     ]
   }
 };
 
 export type MoveId = keyof typeof moves;
 
-type Stat = "hp" | "atk" | "def" | "spd" | "int";
+export type StatusCondition = "poison" | "confusion" | "blindness";
+
+export interface ActiveStatusCondition {
+    type: StatusCondition;
+    duration?: number;
+}
+
+type Stat = "hp" | "atk" | "def" | "spd" | "accuracy" | "evasion";
 type EffectTarget = "self" | "opponent";
 
 export interface StatChangeEffect {
@@ -103,7 +110,7 @@ export interface StatChangeEffect {
 
 export interface ApplyStatusEffect {
     type: "apply_status";
-    status: "poison" | "confusion" | "blindness";
+    status: StatusCondition;
     target: EffectTarget;
     duration?: number;
     chance?: number;
@@ -112,7 +119,7 @@ export interface ApplyStatusEffect {
 export type MoveEffect = StatChangeEffect | ApplyStatusEffect;
 
 export interface MoveData {
-    id: string;
+    id: MoveId;
     name: string;
     power: number;
     type: string;

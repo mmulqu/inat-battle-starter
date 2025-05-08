@@ -1,12 +1,12 @@
 // src/components/BattleScene.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { moves, MoveId } from '../data/moves';
-import { takeTurn, Combatant, TurnResult } from '../battle/engine';
+import { takeTurn, Combatant, TurnResult, LogMessage, LogCategory } from '../battle/engine';
 import { SpeciesId } from '../data/species';
 
 import { CombatantDisplay } from './battle/CombatantDisplay';
 import { PlayerControls } from './battle/PlayerControls';
-import { BattleLog } from './battle/BattleLog';
+import { BattleLog, FormattedLogEntry } from './battle/BattleLog';
 
 const ATTACK_ANIMATION_DURATION = 600; // Duration in milliseconds for the attack animation
 
@@ -20,6 +20,8 @@ interface BattleSceneProps {
     onBattleEnd: (winnerName?: string) => void;
 }
 
+let logCounter = 0; // Simple unique ID generator for logs
+
 export function BattleScene({
     player1Name,
     player2Name,
@@ -31,7 +33,9 @@ export function BattleScene({
     const [enemyTeam, setEnemyTeam] = useState<FullCombatant[]>(() => JSON.parse(JSON.stringify(initialEnemyTeam)));
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [activeEnemyIndex, setActiveEnemyIndex] = useState(0);
-    const [log, setLog] = useState<string[]>(['Battle Start!']);
+    const [log, setLog] = useState<FormattedLogEntry[]>(() => [
+        { id: `log-${logCounter++}`, text: 'Battle Start!', styleType: 'system' }
+    ]);
     const [isPlayerTurn, setIsPlayerTurn] = useState(true);
     const [battleMessage, setBattleMessage] = useState<string>("");
     const [showPlayerSwitchPrompt, setShowPlayerSwitchPrompt] = useState(false);
@@ -80,14 +84,14 @@ export function BattleScene({
             console.log("[DEBUG] checkBattleEnd: All players fainted. CPU wins.");
             setControlsLocked(true);
             setBattleMessage(`${player2Name} wins the match!`);
-            setLog(prev => [...prev, `${player2Name} wins the match!`]);
+            addSystemLog(`${player2Name} wins the match!`, 'system');
             return true;
         }
         if (allEnemyFainted) {
             console.log("[DEBUG] checkBattleEnd: All enemies fainted. Player 1 wins.");
             setControlsLocked(true);
             setBattleMessage(`${player1Name} wins the match!`);
-            setLog(prev => [...prev, `${player1Name} wins the match!`]);
+            addSystemLog(`${player1Name} wins the match!`, 'system');
             return true;
         }
         return false;
@@ -106,7 +110,7 @@ export function BattleScene({
     const processFaint = (faintedSide: 'player' | 'enemy') => {
         const faintedCreature = faintedSide === 'player' ? activePlayer : activeEnemy;
         console.log(`[DEBUG processFaint] ${faintedCreature?.name} fainted. Side: ${faintedSide}`);
-        setLog(prev => [...prev, `${faintedCreature?.name || "A creature"} fainted!`]);
+        addSystemLog(`${faintedCreature?.name || "A creature"} fainted!`, 'system');
 
         if (!battleMessage && !controlsLocked) { 
             if (faintedSide === 'player') {
@@ -118,7 +122,7 @@ export function BattleScene({
                 if (nextEnemyIdx !== -1) {
                     console.log(`[DEBUG processFaint] Enemy fainted. Next enemy index: ${nextEnemyIdx}. Setting new active enemy.`);
                     setActiveEnemyIndex(nextEnemyIdx);
-                    setLog(prev => [...prev, `${player2Name} sends out ${enemyTeam[nextEnemyIdx].name}!`]);
+                    addSystemLog(`${player2Name} sends out ${enemyTeam[nextEnemyIdx].name}!`, 'system');
                     console.log("[DEBUG processFaint] Enemy fainted, new enemy selected. Setting isPlayerTurn=false (for new enemy's turn), controlsLocked=false.");
                     setIsPlayerTurn(false); 
                     setControlsLocked(false); 
@@ -136,11 +140,11 @@ export function BattleScene({
         if (controlsLocked || battleMessage || !isPlayerTurn || showPlayerSwitchPrompt) return;
         const benchedAvailable = playerTeam.some((c, index) => index !== activePlayerIndex && !c.isFainted);
         if (!benchedAvailable) {
-            setLog(prev => [...prev, "No available creatures to swap to!"]);
+            addSystemLog("No available creatures to swap to!", 'system');
             return;
         }
         setIsSwapping(true);
-        setLog(prev => [...prev, `${player1Name} is choosing who to swap in...`]);
+        addSystemLog(`${player1Name} is choosing who to swap in...`, 'system');
     };
 
     const handleConfirmSwap = (newIndex: number) => {
@@ -151,7 +155,7 @@ export function BattleScene({
         const oldCreatureName = activePlayer.name;
         const newCreatureName = playerTeam[newIndex].name;
         setActivePlayerIndex(newIndex);
-        setLog(prev => [...prev, `${player1Name} withdraws ${oldCreatureName} and sends out ${newCreatureName}!`]);
+        addSystemLog(`${player1Name} withdraws ${oldCreatureName} and sends out ${newCreatureName}!`, 'system');
         setIsSwapping(false);
         if (!checkBattleEndAndUpdateState()) {
             setIsPlayerTurn(false);
@@ -160,13 +164,13 @@ export function BattleScene({
 
     const handleCancelSwap = () => {
         setIsSwapping(false);
-        setLog(prev => [...prev, `${player1Name} decided not to swap.`]);
+        addSystemLog(`${player1Name} decided not to swap.`, 'system');
     };
 
     function handlePlayerSwitch(newIndex: number) {
         if (controlsLocked || battleMessage || !playerTeam[newIndex] || playerTeam[newIndex].isFainted) return;
         setActivePlayerIndex(newIndex);
-        setLog(prev => [...prev, `${player1Name} sends out ${playerTeam[newIndex].name}!`]);
+        addSystemLog(`${player1Name} sends out ${playerTeam[newIndex].name}!`, 'system');
         setShowPlayerSwitchPrompt(false); 
         if (!battleMessage && !controlsLocked) setIsPlayerTurn(false); 
     }
@@ -185,7 +189,7 @@ export function BattleScene({
         const playerCombatantForTurn = JSON.parse(JSON.stringify(activePlayer));
 
         const turnResult = takeTurn(enemyCombatantForTurn, playerCombatantForTurn, enemyMoveKey);
-        setLog(prev => [...prev, ...turnResult.logs]);
+        appendLogs(formatEngineLogs(turnResult.logs, false)); // false because it's enemy's turn
 
         let updatedEnemyTeam = enemyTeam.map((c, idx) => 
             idx === activeEnemyIndex ? { ...turnResult.attackerState, isFainted: turnResult.attackerState.stats.hp <= 0 } : c
@@ -204,7 +208,7 @@ export function BattleScene({
             processFaint('player'); 
         } else if (turnResult.outcome === "self_hit" && currentAttackerAfterTurn.isFainted) {
             processFaint('enemy');
-        } else if (turnResult.outcome === "no_effect" && currentAttackerAfterTurn.isFainted) {
+        } else if (turnResult.outcome === "fainted_self" && currentAttackerAfterTurn.isFainted) { // fainted from status before acting or from self-hit
             processFaint('enemy');
         } else {
             if (!checkBattleEndAndUpdateState()) {
@@ -225,7 +229,7 @@ export function BattleScene({
         const enemyCombatantForTurn = JSON.parse(JSON.stringify(activeEnemy));
 
         const turnResult = takeTurn(playerCombatantForTurn, enemyCombatantForTurn, moveKey);
-        setLog(prev => [...prev, ...turnResult.logs]);
+        appendLogs(formatEngineLogs(turnResult.logs, true)); // true because it's player's turn
 
         let updatedPlayerTeam = playerTeam.map((c, idx) => 
             idx === activePlayerIndex ? { ...turnResult.attackerState, isFainted: turnResult.attackerState.stats.hp <= 0 } : c
@@ -244,7 +248,7 @@ export function BattleScene({
             processFaint('enemy');
         } else if (turnResult.outcome === "self_hit" && currentAttackerAfterTurn.isFainted) {
             processFaint('player'); 
-        } else if (turnResult.outcome === "no_effect" && currentAttackerAfterTurn.isFainted) {
+        } else if (turnResult.outcome === "fainted_self" && currentAttackerAfterTurn.isFainted) { // fainted from status before acting or from self-hit
              processFaint('player');
         } else {
             if (!checkBattleEndAndUpdateState()) { 
@@ -266,6 +270,67 @@ export function BattleScene({
             return () => clearTimeout(timerId);
         }
     }, [controlsLocked, isPlayerTurn, battleMessage, showPlayerSwitchPrompt, isSwapping, activeEnemy, playerTeam, enemyTeam]);
+
+    // Helper to map engine LogMessage to FormattedLogEntry
+    const formatEngineLogs = (engineLogs: LogMessage[], currentTurnIsPlayer: boolean): FormattedLogEntry[] => {
+        return engineLogs.map(engineLog => {
+            let styleType: FormattedLogEntry['styleType'] = 'neutral';
+            const sourceIsPlayer = engineLog.sourceId === activePlayer?.id;
+            const sourceIsEnemy = engineLog.sourceId === activeEnemy?.id;
+            const targetIsPlayer = engineLog.targetId === activePlayer?.id;
+            const targetIsEnemy = engineLog.targetId === activeEnemy?.id;
+
+            switch (engineLog.category) {
+                case 'MOVE_USAGE':
+                    styleType = sourceIsPlayer ? 'player' : 'enemy';
+                    break;
+                case 'DAMAGE_DEALT':
+                    // If player dealt damage to enemy, style as 'player' (player's successful action)
+                    // If enemy dealt damage to player, style as 'enemy' (enemy's successful action)
+                    styleType = currentTurnIsPlayer ? 'player' : 'enemy'; 
+                    break;
+                case 'STAT_CHANGE':
+                    styleType = sourceIsPlayer ? 'buff' : (sourceIsEnemy ? 'debuff' : 'neutral'); // Simplified: if source is player, it's a buff for them, if enemy, assume it's a debuff for player or buff for enemy
+                    // More granular: check if stat rose or fell for source, then map to buff/debuff.
+                    // For now, text like "Pikachu's Attack rose!" is styled based on Pikachu.
+                    if (engineLog.text.includes("rose") || engineLog.text.includes("increased")) styleType = 'buff';
+                    else if (engineLog.text.includes("fell") || engineLog.text.includes("decreased")) styleType = 'debuff';
+                    else styleType = sourceIsPlayer ? 'player' : (sourceIsEnemy ? 'enemy' : 'neutral');
+                    break;
+                case 'STATUS_APPLIED':
+                case 'STATUS_EFFECT':
+                    styleType = 'status';
+                    break;
+                case 'FAINTED':
+                    styleType = 'system'; // Fainting is a significant system event
+                    break;
+                case 'ACCURACY_MISS':
+                case 'NO_EFFECT':
+                case 'EFFECTIVENESS': // Could be player (super effective for player) or enemy (super effective for enemy)
+                     // For effectiveness, let's make it 'player' if good for player, 'enemy' if good for enemy
+                    if (engineLog.text.includes("super effective")) {
+                        styleType = currentTurnIsPlayer ? 'player' : 'enemy';
+                    } else if (engineLog.text.includes("not very effective") || engineLog.text.includes("doesn't affect")) {
+                        styleType = currentTurnIsPlayer ? 'enemy' : 'player'; // Bad for current attacker
+                    } else {
+                        styleType = 'neutral';
+                    }
+                    break;
+                default:
+                    styleType = 'neutral';
+            }
+
+            return { id: `log-${logCounter++}`, text: engineLog.text, styleType };
+        });
+    };
+
+    const appendLogs = (newLogs: FormattedLogEntry[]) => {
+        setLog(prev => [...prev, ...newLogs]);
+    };
+    
+    const addSystemLog = (text: string, type: FormattedLogEntry['styleType'] = 'system') => {
+        appendLogs([{ id: `log-${logCounter++}`, text, styleType: type }]);
+    }
 
     // JSX / Render logic (kept from previous user update)
     if (battleMessage) { 
