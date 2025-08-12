@@ -17,15 +17,16 @@ export function CombatantDisplay({
   isPlayer = false
 }: CombatantDisplayProps) {
 
-  // Use the utility function to get the correct sprite
   const spriteSrc = getSpriteForSpecies(combatant.speciesId);
+  const hpText = `${combatant.stats.hp}/${combatant.maxHp} HP`;
 
   return (
-    <div className={`combatant-display ${isPlayer ? 'player' : 'enemy'} ${isActive ? 'active' : ''}`}>
+    <div className={`combatant-display ${isPlayer ? 'player' : 'enemy'} ${isActive ? 'active' : ''}`} style={{ display: 'inline-block' }}>
       <img src={spriteSrc} className="sprite" alt={combatant.name} />
-      <div>{combatant.name} (HP: {combatant.stats.hp})</div>
-      {/* Pass maxHp from the combatant object */}
+      <div style={{ fontWeight: 700 }}>{combatant.name}</div>
+      <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 6 }}>{combatant.type}</div>
       <HPBar currentHp={combatant.stats.hp} maxHp={combatant.maxHp} />
+      <div style={{ fontSize: 12, opacity: 0.8 }}>{hpText}</div>
     </div>
   );
 }

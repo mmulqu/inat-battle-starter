@@ -50,12 +50,11 @@ export function BattleScene({
     // useEffect to handle the transition to GameOverScreen once battleMessage is set
     useEffect(() => {
         if (battleMessage) {
-            console.log(`[DEBUG] useEffect (battleMessage): Battle message "${battleMessage}" detected. Scheduling onBattleEnd.`);
             const timerId = setTimeout(() => {
                 if (battleMessage.includes(player1Name)) onBattleEnd(player1Name);
                 else if (battleMessage.includes(player2Name)) onBattleEnd(player2Name);
                 else onBattleEnd();
-            }, 3000);
+            }, 1800);
             return () => clearTimeout(timerId);
         }
     }, [battleMessage, onBattleEnd, player1Name, player2Name]);
@@ -67,14 +66,12 @@ export function BattleScene({
         const allEnemyFainted = enemyTeam.every(c => c.isFainted);
 
         if (allPlayerFainted) {
-            console.log("[DEBUG] checkBattleEnd: All players fainted. CPU wins.");
             setControlsLocked(true);
             setBattleMessage(`${player2Name} wins the match!`);
             setLog(prev => [...prev, `${player2Name} wins the match!`]);
             return true;
         }
         if (allEnemyFainted) {
-            console.log("[DEBUG] checkBattleEnd: All enemies fainted. Player 1 wins.");
             setControlsLocked(true);
             setBattleMessage(`${player1Name} wins the match!`);
             setLog(prev => [...prev, `${player1Name} wins the match!`]);
@@ -86,32 +83,23 @@ export function BattleScene({
     // NEW useEffect to check for game end after team states update
     useEffect(() => {
         if (!battleMessage && !controlsLocked) {
-            // This runs after playerTeam or enemyTeam state updates.
-            // checkBattleEndAndUpdateState will read the latest state.
-            console.log("[DEBUG] useEffect (team/status change): Checking for battle end.");
             checkBattleEndAndUpdateState();
         }
-    }, [playerTeam, enemyTeam, battleMessage, controlsLocked]); // Removed checkBattleEndAndUpdateState from deps as it causes issues if not memoized
+    }, [playerTeam, enemyTeam, battleMessage, controlsLocked]);
 
     const processFaint = (faintedSide: 'player' | 'enemy') => {
         const faintedCreature = faintedSide === 'player' ? activePlayer : activeEnemy;
         setLog(prev => [...prev, `${faintedCreature?.name || "A creature"} fainted!`]);
 
-        // Game end is now primarily handled by the useEffect above.
-        // This function handles immediate consequences if the game hasn't ended.
-
-        if (!battleMessage && !controlsLocked) { // Check if game hasn't already been marked as ended
+        if (!battleMessage && !controlsLocked) {
             if (faintedSide === 'player') {
                 setShowPlayerSwitchPrompt(true);
-            } else { // Enemy fainted
+            } else {
                 const nextEnemyIdx = findNextAvailableIndex(enemyTeam, (activeEnemyIndex + 1) % enemyTeam.length);
                 if (nextEnemyIdx !== -1) {
                     setActiveEnemyIndex(nextEnemyIdx);
                     setLog(prev => [...prev, `${player2Name} sends out ${enemyTeam[nextEnemyIdx].name}!`]);
                     setIsPlayerTurn(true); 
-                } else {
-                    // If no next enemy, the useEffect checking team states should catch this for game end.
-                    console.log("[DEBUG] processFaint (enemy): No next enemy. Game end should be handled by useEffect.");
                 }
             }
         }
@@ -158,7 +146,6 @@ export function BattleScene({
         if (controlsLocked || isPlayerTurn || battleMessage || showPlayerSwitchPrompt || isSwapping || !activeEnemy || activeEnemy.isFainted) {
             return;
         }
-        console.log(`[DEBUG] enemyTurn attacking ${activePlayer?.name}`);
         const enemyMoveKey = activeEnemy.moves[Math.floor(Math.random() * activeEnemy.moves.length)];
         if (!enemyMoveKey || !activePlayer) {
             if (!battleMessage && !controlsLocked) setIsPlayerTurn(true); return;
@@ -186,7 +173,6 @@ export function BattleScene({
         if (controlsLocked || !isPlayerTurn || battleMessage || showPlayerSwitchPrompt || isSwapping || !activePlayer || activePlayer.isFainted) {
             return;
         }
-        console.log(`[DEBUG] handleMove: ${activePlayer.name} attacking ${activeEnemy?.name}`);
         if (!activeEnemy) return;
 
         const turnResult = takeTurn(activePlayer, activeEnemy, moveKey);
@@ -207,19 +193,18 @@ export function BattleScene({
         }
     }
     
-    // useEffect for triggering enemy turn (kept from previous user update)
+    // useEffect for triggering enemy turn
     useEffect(() => {
         if (!controlsLocked && !isPlayerTurn && !battleMessage && !showPlayerSwitchPrompt && !isSwapping && activeEnemy && !activeEnemy.isFainted) {
             const timerId = setTimeout(() => {
                 if (!controlsLocked && !isPlayerTurn && !battleMessage && !showPlayerSwitchPrompt && !isSwapping && activeEnemy && !activeEnemy.isFainted) {
                     enemyTurn();
                 }
-            }, 150); 
+            }, 220); 
             return () => clearTimeout(timerId);
         }
     }, [controlsLocked, isPlayerTurn, battleMessage, showPlayerSwitchPrompt, isSwapping, activeEnemy, playerTeam, enemyTeam]);
 
-    // JSX / Render logic (kept from previous user update)
     if (battleMessage) { 
         return ( <div className="battle-wrapper" style={{ textAlign: 'center', padding: '20px' }}> <h1>{battleMessage}</h1> </div> );
     }
@@ -231,25 +216,25 @@ export function BattleScene({
 
     return (
         <div className="battle-wrapper">
-             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', padding: '0 10px', fontWeight: 'bold' }}>
-                <span>{player1Name} (Team: {playerTeam.filter(c=>!c.isFainted).length}/{playerTeam.length})</span>
-                <span>{player2Name} (Team: {enemyTeam.filter(c=>!c.isFainted).length}/{enemyTeam.length})</span>
+             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', padding: '0 10px', fontWeight: 700 }}>
+                <span>{player1Name} (active {playerTeam.filter(c=>!c.isFainted).length}/{playerTeam.length})</span>
+                <span>{player2Name} (active {enemyTeam.filter(c=>!c.isFainted).length}/{enemyTeam.length})</span>
             </div>
 
             {activeEnemy && (
-                <div style={{ textAlign: 'center', marginBottom: '16px', opacity: (isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.7 : 1.0 }}>
+                <div style={{ textAlign: 'center', marginBottom: '16px', opacity: (isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.9 : 1.0 }}>
                     <CombatantDisplay combatant={activeEnemy} isActive={!isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} />
                 </div>
             )}
-            <hr style={{ margin: '16px 0', opacity: 0.4 }} />
+            <hr style={{ margin: '16px 0', opacity: 0.16, borderColor: '#2a2f47' }} />
             {activePlayer && (
-                <div style={{ textAlign: 'center', marginTop: '16px', opacity: (!isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.7 : 1.0 }}>
+                <div style={{ textAlign: 'center', marginTop: '16px', opacity: (!isPlayerTurn || showPlayerSwitchPrompt || controlsLocked || isSwapping || battleMessage) ? 0.9 : 1.0 }}>
                 <CombatantDisplay combatant={activePlayer} isPlayer={true} isActive={isPlayerTurn && !showPlayerSwitchPrompt && !controlsLocked && !isSwapping && !battleMessage} />
                 </div>
             )}
 
             {isSwapping && !controlsLocked && !battleMessage && (
-                <div style={{ marginTop: '20px', padding: '15px', background: '#4a5170', borderRadius: '5px', textAlign: 'center' }}>
+                <div style={{ marginTop: '20px', padding: '15px', background: '#111425', border: '1px solid #2a2f47', borderRadius: '10px', textAlign: 'center' }}>
                     <p>Choose a creature to swap in:</p>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
                         {playerTeam.map((member, index) => (
@@ -257,27 +242,27 @@ export function BattleScene({
                                 <button
                                     key={member.id}
                                     onClick={() => handleConfirmSwap(index)}
-                                    style={{ padding: '8px 12px', background: '#5cb85c', color: 'white', border: 'none', borderRadius: '4px'}}
+                                    style={{ padding: '8px 12px', background: '#22c55e' }}
                                 >
                                     {member.name} (HP: {member.stats.hp}/{member.maxHp})
                                 </button>
                             )
                         ))}
                     </div>
-                    <button onClick={handleCancelSwap} style={{ padding: '8px 12px', background: '#d9534f', color: 'white', border: 'none', borderRadius: '4px'}}>
+                    <button onClick={handleCancelSwap} style={{ padding: '8px 12px', background: '#ef4444' }}>
                         Cancel Swap
                     </button>
                 </div>
             )}
 
             {showPlayerSwitchPrompt && !isSwapping && !battleMessage && !controlsLocked && (
-                <div style={{ marginTop: '20px', padding: '15px', background: '#4a5170', borderRadius: '5px', textAlign: 'center' }}>
+                <div style={{ marginTop: '20px', padding: '15px', background: '#111425', border: '1px solid #2a2f47', borderRadius: '10px', textAlign: 'center' }}>
                     <p>{activePlayer?.name || 'Your creature'} fainted! Choose your next creature:</p>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
                         {playerTeam.map((member, index) => (
                             !member.isFainted && (
                                 <button key={member.id} onClick={() => handlePlayerSwitch(index)}
-                                    style={{ padding: '8px 12px', background: '#3ad87b', color: 'white', border: 'none', borderRadius: '4px'}}>
+                                    style={{ padding: '8px 12px', background: '#22c55e' }}>
                                     {member.name} (HP: {member.stats.hp}/{member.maxHp})
                                 </button>
                             )

@@ -1,35 +1,57 @@
 body {
-    font-family: system-ui, sans-serif;
-    background: #1f2333;
-    color: #f8f8f8;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    background: #111425;
+    color: #f3f5f7;
     display: flex;
     justify-content: center;
-    padding-top: 40px;
-  }
-  
-  .battle-wrapper {
-    background: #2d3248;
-    border-radius: 8px;
-    padding: 24px;
-    width: 360px;
-    box-shadow: 0 4px 14px rgba(0,0,0,.45);
-  }
-  
-  .hp-bar {
-    height: 8px;
-    background: #444;
-    margin: 4px 0 12px;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .hp-fill {
-    height: 100%;
-    background: #3ad87b;
-  }
-  
-  .sprite {
-    image-rendering: pixelated;
-    width: 64px;
-    height: 64px;
-  }
+    padding: 40px 16px;
+}
+
+button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, opacity .12s ease;
+}
+button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+button:active { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.battle-wrapper {
+  background: #1b2036;
+  border: 1px solid #2a2f47;
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+}
+
+.hp-bar {
+  height: 10px;
+  background: #2a2f47;
+  margin: 6px 0 12px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #22c55e);
+}
+
+.sprite {
+  image-rendering: pixelated;
+  width: 72px;
+  height: 72px;
+}
+
+.battle-log h4 {
+  margin: 0 0 8px 0;
+}
+
+.log-entries p { margin: 6px 0; }
   

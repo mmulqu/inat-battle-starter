@@ -18,34 +18,28 @@ export function GameOverScreen({ winnerName, onPlayAgain }: GameOverScreenProps)
             style={{
                 textAlign: 'center',
                 padding: '40px',
-                background: '#2d3248',
+                background: '#1b2036',
+                border: '1px solid #2a2f47',
                 borderRadius: '12px',
-                color: '#f8f8f8',
-                boxShadow: '0 6px 20px rgba(0,0,0,.5)',
+                color: '#f3f5f7',
+                boxShadow: '0 8px 24px rgba(0,0,0,.5)',
                 width: '100%',
-                maxWidth: '500px'
+                maxWidth: '560px'
             }}
         >
-            <h1 style={{ fontSize: '2.5em', marginBottom: '10px' }}>Game Over</h1>
-            <p style={{ fontSize: '1.8em', color: '#3ad87b', marginBottom: '30px', fontWeight: 'bold' }}>
+            <h1 style={{ fontSize: '2.2em', marginBottom: '10px', marginTop: 0 }}>Game Over</h1>
+            <p style={{ fontSize: '1.6em', color: '#22c55e', marginBottom: '24px', fontWeight: 'bold' }}>
                 {message}
             </p>
             <button
                 onClick={onPlayAgain}
                 style={{
-                    padding: '12px 25px',
-                    fontSize: '1.2em',
-                    background: '#3ad87b',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s ease',
+                    padding: '12px 22px',
+                    fontSize: '1.05em',
+                    background: '#22c55e'
                 }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#32c06c'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3ad87b'}
             >
-                Play Again?
+                Play Again
             </button>
         </div>
     );
