@@ -146,3 +146,12 @@ Thumbs.db
 # System files
 .DS_Store
 Thumbs.db 
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Node
+node_modules/ 

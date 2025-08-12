@@ -19,12 +19,13 @@ export function PlayerControls({
   disabled = false
 }: PlayerControlsProps) {
   return (
-    <div className="player-controls" style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+    <div className="player-controls" style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
       {playerCombatant.moves.map((moveId) => (
         <button
           key={moveId}
           onClick={() => onMoveSelect(moveId)}
           disabled={disabled} // Use the disabled prop
+          aria-label={`Use move ${moves[moveId]?.name ?? 'Unknown'}`}
         >
           {moves[moveId]?.name ?? 'Unknown Move'} {/* Safer access */}
         </button>
@@ -34,7 +35,8 @@ export function PlayerControls({
         <button
           onClick={onSwapInitiate}
           disabled={disabled}
-          style={{ background: '#6c757d' }} // Different color for swap
+          style={{ background: '#6b7280' }} // Different color for swap
+          aria-label="Swap active creature"
         >
           Swap
         </button>
